@@ -94,7 +94,7 @@ vc4_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
 }
 
 static rtx
-arm_function_value(const_tree type, const_tree func,
+vc4_function_value(const_tree type, const_tree func,
 		   bool outgoing ATTRIBUTE_UNUSED)
 {
   enum machine_mode mode;
@@ -130,7 +130,7 @@ arm_function_value(const_tree type, const_tree func,
 #define TARGET_LEGITIMATE_ADDRESS_P 	vc4_legitimate_address_p 
 
 #undef  TARGET_FUNCTION_VALUE
-#define TARGET_FUNCTION_VALUE arm_function_value
+#define TARGET_FUNCTION_VALUE vc4_function_value
 
 #undef TARGET_PRINT_OPERAND
 #define TARGET_PRINT_OPERAND vc4_print_operand
@@ -236,7 +236,33 @@ static rtx
 vc4_function_arg (cumulative_args_t pcum_v, enum machine_mode mode,
 		  const_tree type, bool named)
 {
+  CUMULATIVE_ARGS *pcum = get_cumulative_args (pcum_v);
+  if (pcum->nregs < 6)
+    {
+      int t = pcum->nregs;
+      return gen_rtx_REG (mode, t);
+    }
   return NULL_RTX;
+}
+
+/* Define how to find the value returned by a library function
+   assuming the value has mode MODE.  */
+
+static rtx
+vc4_libcall_value (enum machine_mode mode, const_rtx libcall)
+{
+    return gen_rtx_REG (mode, 0);
+}
+
+static void
+vc4_function_arg_advance (cumulative_args_t cum_v, enum machine_mode mode,
+			  const_tree type, bool named ATTRIBUTE_UNUSED)
+{
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
+
+  cum->nregs += ((mode != BLKmode
+		  ? (GET_MODE_SIZE (mode) + 3) & ~3
+		  : (int_size_in_bytes (type) + 3) & ~3)) / 4;
 }
 
 static void
@@ -253,9 +279,9 @@ vc4_output_function_epilogue (FILE *stream,
   /* fputs ("\n", stream); */
 }
 
+#undef  TARGET_LIBCALL_VALUE
+#define TARGET_LIBCALL_VALUE vc4_libcall_value
 
-#undef TARGET_FUNCTION_ARG
-#define TARGET_FUNCTION_ARG vc4_function_arg
 
 /* #undef  TARGET_ASM_FUNCTION_PROLOGUE */
 /* #define TARGET_ASM_FUNCTION_PROLOGUE vc4_output_function_prologue */

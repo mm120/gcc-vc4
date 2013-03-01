@@ -10,9 +10,11 @@
 (define_constants
   [(R0_REGNUM         0)	; First CORE register
    (R1_REGNUM	      1)	; Second CORE register
-   (LR_REGNUM         26)
-   (PC_REGNUM         31)
-   (LAST_ARM_REGNUM  31)	;
+   (VC4_R15_REGNUM    15)
+   (VC4_SP_REGNUM     25)
+   (VC4_LR_REGNUM         26)
+   (VC4_PC_REGNUM         31)
+;;;   (LAST_ARM_REGNUM  31)	;
    (CC_REGNUM       100)	; Condition code pseudo register
   ]
 )
@@ -21,7 +23,7 @@
   [(set (pc)
 	(label_ref (match_operand 0 "" "")))]
   ""
-  "jbr %l0")
+  "b %l0")
 
 ;; The subtract-with-carry (sbwc) instruction only takes two operands.
 (define_insn ""
@@ -43,6 +45,66 @@
   ""
   "sub %0, %1, %2")
 
+(define_insn "xor<mode>3"
+  [(set (match_operand:FIXED 0 "nonimmediate_operand" "=r")
+	(xor:FIXED (match_operand:FIXED 1 "general_operand" "")
+		    (match_operand:FIXED 2 "general_operand" "")))]
+  ""
+  "xor %0, %1, %2")
+
+(define_insn "ior<mode>3"
+  [(set (match_operand:FIXED 0 "nonimmediate_operand" "=r")
+	(ior:FIXED (match_operand:FIXED 1 "general_operand" "")
+		    (match_operand:FIXED 2 "general_operand" "")))]
+  ""
+  "or %0, %1, %2")
+
+(define_insn "and<mode>3"
+  [(set (match_operand:FIXED 0 "nonimmediate_operand" "=r")
+	(and:FIXED (match_operand:FIXED 1 "general_operand" "")
+		    (match_operand:FIXED 2 "general_operand" "")))]
+  ""
+  "and %0, %1, %2")
+
+(define_insn "mul<mode>3"
+  [(set (match_operand:FIXED 0 "nonimmediate_operand" "=r")
+	(mult:FIXED (match_operand:FIXED 1 "general_operand" "")
+		    (match_operand:FIXED 2 "general_operand" "")))]
+  ""
+  "mul %0, %1, %2")
+
+(define_insn "extendhidi2"
+  [(set (match_operand:DI 0 "nonimmediate_operand" "")
+	(sign_extend:DI
+	 (match_operand:HI 1 "general_operand" "")))]
+  ""
+  "exts %0, %1, #16"
+)
+
+(define_insn "extendqidi2"
+  [(set (match_operand:DI 0 "nonimmediate_operand" "")
+	(sign_extend:DI
+	 (match_operand:QI 1 "general_operand" "")))]
+  ""
+  "exts %0, %1, #8"
+)
+
+(define_insn "zero_extendhidi2"
+  [(set (match_operand:DI 0 "nonimmediate_operand" "")
+	(zero_extend:DI
+	 (match_operand:HI 1 "general_operand" "")))]
+  ""
+  "extu %0, %1, #16"
+)
+
+(define_insn "zero_extendqidi2"
+  [(set (match_operand:DI 0 "nonimmediate_operand" "")
+	(zero_extend:DI
+	 (match_operand:QI 1 "general_operand" "")))]
+  ""
+  "extu %0, %1, #8"
+)
+
 ; (define_insn "addsi3"
 ;   [(set (match_operand:SI 0 "nonimmediate_operand" "=r")
 ; 	(plus:SI (match_operand:SI 1 "general_operand" "%r")
@@ -53,7 +115,7 @@
 (define_expand "call"
   [(parallel [(call (match_operand 0 "memory_operand" "m")
 		    (match_operand 1 "" "i"))
-             (clobber (reg:SI LR_REGNUM))
+             (clobber (reg:SI VC4_LR_REGNUM))
              (use (match_operand 2 "" ""))
              (use (match_operand 3 "" ""))])]
   ""
@@ -65,25 +127,24 @@
       XEXP (operands[0], 0) = copy_to_mode_reg (Pmode, addr);
 
     emit_call_insn (gen_call_internal (operands[0], operands[1],
-                    gen_rtx_REG (SImode, LR_REGNUM)));
+                    gen_rtx_REG (SImode, VC4_LR_REGNUM)));
     
     DONE;
   }
 )
 
 
-
 (define_expand "call_internal"
   [(parallel [(call (match_operand 0 "memory_operand" "")
 	            (match_operand 1 "general_operand" ""))
 	      (use (match_operand 2 "" ""))
-	      (clobber (reg:SI LR_REGNUM))])])
+	      (clobber (reg:SI VC4_LR_REGNUM))])])
 
 (define_insn "*call"
   [(call (mem (match_operand:SI 0 "" ""))
          (match_operand 1 "" ""))
    (use (match_operand 2 "" ""))
-   (clobber (reg:SI LR_REGNUM))]
+   (clobber (reg:SI VC4_LR_REGNUM))]
   ""
   "bl %0"
 )
@@ -129,12 +190,6 @@
     DONE;
   }"
 )
-
-(define_expand "call_internal"
-  [(parallel [(call (match_operand 0 "memory_operand" "")
-	            (match_operand 1 "general_operand" ""))
-	      (use (match_operand 2 "" ""))
-	      (clobber (reg:SI LR_REGNUM))])])
 
 (define_insn "movsi"
   [(set (match_operand:SI 0 "general_operand" "=r,r,m")
