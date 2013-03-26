@@ -8,13 +8,13 @@
 (define_mode_attr  iprefx [(QI "B") (HI "H") (SI "N")])
 
 (define_constants
-  [(R0_REGNUM         0)	; First CORE register
-   (R1_REGNUM	      1)	; Second CORE register
+  [(VC4_R0_REGNUM      0)
+   (VC4_R1_REGNUM      1)
    (VC4_R15_REGNUM    15)
    (VC4_SP_REGNUM     25)
-   (VC4_LR_REGNUM         26)
-   (VC4_PC_REGNUM         31)
-;;;   (LAST_ARM_REGNUM  31)	;
+   (VC4_LR_REGNUM     26)
+   (VC4_PC_REGNUM     31)
+   (VC4_LAST_REGNUM   31)
    (CC_REGNUM       100)	; Condition code pseudo register
   ]
 )
@@ -32,85 +32,95 @@
   "nop")
 
 (define_insn "add<mode>3"
-  [(set (match_operand:FIXED 0 "nonimmediate_operand" "=r")
-	(plus:FIXED (match_operand:FIXED 1 "general_operand" "")
-		    (match_operand:FIXED 2 "general_operand" "")))]
+  [(set (match_operand:FIXED 0 "register_operand" "=l,r,r,r,r")
+	(plus:FIXED (match_operand:FIXED 1 "general_operand" "%0,r,r,0,0")
+		    (match_operand:FIXED 2 "general_operand" "l,r,S06,S16,i")))]
   ""
-  "add %0, %1, %2")
+  "@
+   add %0, %2
+   add %0, %1, %2
+   add %0, %1, %2
+   add %0, %2
+   add %0, %2")
+;;;   [(set_attr "length" "2,2,4,4,6")])
 
 (define_insn "sub<mode>3"
-  [(set (match_operand:FIXED 0 "nonimmediate_operand" "=r")
-	(minus:FIXED (match_operand:FIXED 1 "general_operand" "r")
-		     (match_operand:FIXED 2 "general_operand" "r")))]
+  [(set (match_operand:FIXED 0 "nonimmediate_operand" "=l,r,r,r,r")
+	(minus:FIXED (match_operand:FIXED 1 "general_operand" "0,r,r,0,0")
+		     (match_operand:FIXED 2 "general_operand" "l,r,S06,S16,i")))]
   ""
-  "sub %0, %1, %2")
+  "@
+   sub %0, %2
+   sub %0, %1, %2
+   sub %0, %1, %2
+   sub %0, %2
+   sub %0, %2")
+;;;   [(set_attr "length" "2,2,4,4,6")])
 
 (define_insn "xor<mode>3"
-  [(set (match_operand:FIXED 0 "nonimmediate_operand" "=r")
-	(xor:FIXED (match_operand:FIXED 1 "general_operand" "")
-		    (match_operand:FIXED 2 "general_operand" "")))]
+  [(set (match_operand:FIXED 0 "nonimmediate_operand" "=l,r,r,r,r")
+	(xor:FIXED (match_operand:FIXED 1 "general_operand" "%0,r,r,0,0")
+	           (match_operand:FIXED 2 "general_operand" "l,r,S06,S16,i")))]
   ""
-  "xor %0, %1, %2")
+  "@
+   xor %0, %2
+   xor %0, %1, %2
+   xor %0, %1, %2
+   xor %0, %2
+   xor %0, %2")
 
 (define_insn "ior<mode>3"
   [(set (match_operand:FIXED 0 "nonimmediate_operand" "=r")
-	(ior:FIXED (match_operand:FIXED 1 "general_operand" "")
-		    (match_operand:FIXED 2 "general_operand" "")))]
+	(ior:FIXED (match_operand:FIXED 1 "general_operand" "r")
+		    (match_operand:FIXED 2 "general_operand" "r")))]
   ""
   "or %0, %1, %2")
 
 (define_insn "and<mode>3"
   [(set (match_operand:FIXED 0 "nonimmediate_operand" "=r")
-	(and:FIXED (match_operand:FIXED 1 "general_operand" "")
-		    (match_operand:FIXED 2 "general_operand" "")))]
+	(and:FIXED (match_operand:FIXED 1 "general_operand" "r")
+		    (match_operand:FIXED 2 "general_operand" "r")))]
   ""
   "and %0, %1, %2")
 
 (define_insn "mul<mode>3"
   [(set (match_operand:FIXED 0 "nonimmediate_operand" "=r")
-	(mult:FIXED (match_operand:FIXED 1 "general_operand" "")
-		    (match_operand:FIXED 2 "general_operand" "")))]
+	(mult:FIXED (match_operand:FIXED 1 "general_operand" "r")
+		    (match_operand:FIXED 2 "general_operand" "r")))]
   ""
   "mul %0, %1, %2")
 
-(define_insn "extendhidi2"
-  [(set (match_operand:DI 0 "nonimmediate_operand" "")
-	(sign_extend:DI
-	 (match_operand:HI 1 "general_operand" "")))]
+(define_insn "extendhisi2"
+  [(set (match_operand:SI 0 "nonimmediate_operand" "=r")
+	(sign_extend:SI
+	 (match_operand:HI 1 "general_operand" "r")))]
   ""
   "exts %0, %1, #16"
 )
 
-(define_insn "extendqidi2"
-  [(set (match_operand:DI 0 "nonimmediate_operand" "")
-	(sign_extend:DI
-	 (match_operand:QI 1 "general_operand" "")))]
+(define_insn "extendqisi2"
+  [(set (match_operand:SI 0 "nonimmediate_operand" "=r")
+	(sign_extend:SI
+	 (match_operand:QI 1 "general_operand" "r")))]
   ""
   "exts %0, %1, #8"
 )
 
-(define_insn "zero_extendhidi2"
-  [(set (match_operand:DI 0 "nonimmediate_operand" "")
-	(zero_extend:DI
-	 (match_operand:HI 1 "general_operand" "")))]
+(define_insn "zero_extendhisi2"
+  [(set (match_operand:SI 0 "nonimmediate_operand" "=r")
+	(zero_extend:SI
+	 (match_operand:HI 1 "general_operand" "r")))]
   ""
   "extu %0, %1, #16"
 )
 
-(define_insn "zero_extendqidi2"
-  [(set (match_operand:DI 0 "nonimmediate_operand" "")
-	(zero_extend:DI
-	 (match_operand:QI 1 "general_operand" "")))]
+(define_insn "zero_extendqisi2"
+  [(set (match_operand:SI 0 "nonimmediate_operand" "=r")
+	(zero_extend:SI
+	 (match_operand:QI 1 "general_operand" "r")))]
   ""
   "extu %0, %1, #8"
 )
-
-; (define_insn "addsi3"
-;   [(set (match_operand:SI 0 "nonimmediate_operand" "=r")
-; 	(plus:SI (match_operand:SI 1 "general_operand" "%r")
-;                  (match_operand:SI 2 "general_operand" "r")))]
-;   ""
-;   "add %r0, %r1, %r2")
 
 (define_expand "call"
   [(parallel [(call (match_operand 0 "memory_operand" "m")
@@ -122,8 +132,7 @@
   {
     rtx addr = XEXP (operands[0], 0);
 
-    if ((GET_CODE (addr) != REG && !CONSTANT_ADDRESS_P (addr))
-        )
+    if ((GET_CODE (addr) != REG && !CONSTANT_ADDRESS_P (addr)))
       XEXP (operands[0], 0) = copy_to_mode_reg (Pmode, addr);
 
     emit_call_insn (gen_call_internal (operands[0], operands[1],
@@ -157,7 +166,7 @@
 
 ; (define_insn "*return"
 ;   [(return
-;    (set (reg:SI PC_REGNUM)
+;    (set (reg:SI VC4_PC_REGNUM)
 ;         (mem:SI (post_inc:SI (match_operand:SI 0 "" "r"))))]
 ;   ""
 ;   "b lr"
@@ -192,31 +201,30 @@
 )
 
 (define_insn "movsi"
-  [(set (match_operand:SI 0 "general_operand" "=r,r,m")
-        (match_operand:SI 1 "general_operand" "ri,m,r"))]
+  [(set (match_operand:SI 0 "general_operand" "=r,r,m,r")
+        (match_operand:SI 1 "general_operand" "ri,m,r,o"))]
   ""
   "@
   mov %0, %1
   ld %0, %1
-  st %1, %0")
+  st %1, %0
+  ld %0, %1")
 
 (define_insn "movhi"
-  [(set (match_operand:HI 0 "nonimmediate_operand" "")
-        (match_operand:HI 1 "general_operand" ""))]
+  [(set (match_operand:HI 0 "general_operand" "=r,m")
+        (match_operand:HI 1 "general_operand" "m,r"))]
   ""
-  "mov %0, %1")
+  "@
+   ldsh %0, %1
+   stsh %0, %1")
 
 (define_insn "movqi"
-  [(set (match_operand:QI 0 "nonimmediate_operand" "")
-        (match_operand:QI 1 "general_operand" ""))]
+  [(set (match_operand:QI 0 "general_operand" "=r,m")
+        (match_operand:QI 1 "nonimmediate_operand" "m,r"))]
   ""
-  "mov %0, %1")
-
-(define_insn "movbi"
-  [(set (match_operand:BI 0 "nonimmediate_operand" "")
-        (match_operand:BI 1 "general_operand" ""))]
-  ""
-  "mov %0, %1")
+  "@
+   ldb %0, %1
+   stb %0, %1")
 
 (define_insn "nop"
   [(const_int 0)]

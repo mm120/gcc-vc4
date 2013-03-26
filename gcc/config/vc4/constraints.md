@@ -1,4 +1,7 @@
 
+(define_register_constraint "l" "LOW_REGS"
+  "Registers from r0 to r15.")
+
 (define_constraint "J"
   "Integer zero."
   (and (match_code "const_int")

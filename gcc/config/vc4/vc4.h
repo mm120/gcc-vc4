@@ -4,6 +4,14 @@
 /* Nonzero if ELF.  Redefined by vc4/elf.h.  */
 #define TARGET_ELF 0
 
+#ifndef TARGET_DEFAULT
+#define TARGET_DEFAULT (MASK_UNIX_ASM)
+#endif
+
+/* 17.2 Controlling the Compilation Driver, ‘gcc’ */
+
+/* 17.3 Run-time Target Specification */
+
 /* Target CPU builtins.  */
 #define TARGET_CPU_CPP_BUILTINS()		\
   do						\
@@ -13,10 +21,6 @@
       builtin_assert ("machine=vc4");		\
     }						\
   while (0)
-
-#ifndef TARGET_DEFAULT
-#define TARGET_DEFAULT (MASK_UNIX_ASM)
-#endif
 
 /* 17.5 Storage Layout */
 
@@ -37,6 +41,23 @@
 /* Width of a word, in units (bytes).  */
 #define UNITS_PER_WORD 4
 
+/* Define this macro if it is advisable to hold scalars in registers
+   in a wider mode than that declared by the program.  In such cases,
+   the value is constrained to be within the bounds of the declared
+   type, but kept valid in the wider mode.  The signedness of the
+   extension may differ from that of the type.  */
+
+#define PROMOTE_MODE(MODE, UNSIGNEDP, TYPE) do {	\
+    if (GET_MODE_CLASS (MODE) == MODE_INT		\
+	&& GET_MODE_SIZE (MODE) < UNITS_PER_WORD)      	\
+      {							\
+	(MODE) = SImode;				\
+      }							\
+  } while (0)
+
+#undef TARGET_PROMOTE_FUNCTION_MODE
+#define TARGET_PROMOTE_FUNCTION_MODE vc4_promote_function_mode
+
 /* Allocation boundary (in *bits*) for storing arguments in argument list.  */
 #define PARM_BOUNDARY 32
 
@@ -56,8 +77,8 @@
 /* 17.6 Layout of Source Language Data Types */
 
 /* We only support float's (at least at the moment). */
-#define DOUBLE_TYPE_SIZE 32
-#define LONG_DOUBLE_TYPE_SIZE 32
+#define DOUBLE_TYPE_SIZE       FLOAT_TYPE_SIZE
+#define LONG_DOUBLE_TYPE_SIZE  FLOAT_TYPE_SIZE
 
 /* Define this as 1 if `char' should by default be signed; else as 0.  */
 #define DEFAULT_SIGNED_CHAR 1
@@ -93,7 +114,7 @@
                              1, 1, 1, 1, 1, 1, 1, 1}
 
 /* VC4 pc is overloaded on a register.  */
-#define PC_REGNUM 31
+#define PC_REGNUM VC4_PC_REGNUM
 
 /* 17.7.2 Order of Allocation of Registers */
 
@@ -199,6 +220,10 @@ enum reg_class { NO_REGS, LOW_REGS, ALL_REGS, LIM_REG_CLASSES };
 
 /* 17.10.6 Passing Function Arguments on the Stack */
 
+#define PUSH_ARGS 1
+
+#define PUSH_ROUNDING(n) (((n) + 3u) & ~3u)
+
 /* 17.10.7 Passing Arguments in Registers */
 
 #undef TARGET_FUNCTION_ARG
@@ -220,16 +245,56 @@ typedef struct {
 
 /* 17.10.8 How Scalar Function Values Are Returned */
 
+#undef TARGET_FUNCTION_VALUE
+#define TARGET_FUNCTION_VALUE vc4_function_value
+
+#undef TARGET_LIBCALL_VALUE
+#define TARGET_LIBCALL_VALUE vc4_libcall_value
+
+#undef TARGET_FUNCTION_VALUE_REGNO_P
+#define TARGET_FUNCTION_VALUE_REGNO_P vc4_function_value_regno_p
+
 /* 17.10.9 How Large Values Are Returned */
+
 /* 17.10.10 Caller-Saves Register Allocation */
+
 /* 17.10.11 Function Entry and Exit */
+
+/* #undef TARGET_ASM_FUNCTION_PROLOGUE */
+/* #define TARGET_ASM_FUNCTION_PROLOGUE vc4_output_function_prologue */
+
+#undef TARGET_ASM_FUNCTION_EPILOGUE
+#define TARGET_ASM_FUNCTION_EPILOGUE vc4_output_function_epilogue
+
 /* 17.10.12 Generating Code for Profiling */
+
+#define FUNCTION_PROFILER(file, labelno) \
+  do {					 \
+  } while(0)
+
 /* 17.10.13 Permitting tail calls */
+
 /* 17.10.14 Stack smashing protection */
+
 /* 17.11 Implementing the Varargs Macros */
+
 /* 17.12 Trampolines for Nested Functions */
+
+/* Length in units of the trampoline for entering a nested function.  */
+#define TRAMPOLINE_SIZE 15
+
 /* 17.13 Implicit Calls to Library Routines */
 /* 17.14 Addressing Modes */
+
+#define HAVE_PRE_DECREMENT 1
+#define HAVE_POST_INCREMENT 1
+
+/* Maximum number of registers that can appear in a valid memory address.  */
+#define MAX_REGS_PER_ADDRESS 2
+
+#undef TARGET_LEGITIMATE_ADDRESS_P
+#define TARGET_LEGITIMATE_ADDRESS_P	vc4_legitimate_address_p
+
 /* 17.15 Anchored Addresses */
 /* 17.16.1 Representation of condition codes using (cc0) */
 /* 17.16.2 Representation of condition codes using registers */
@@ -237,81 +302,26 @@ typedef struct {
 
 /* 17.17 Describing Relative Costs of Operations */
 
+/* Specify the cost of a branch insn; roughly the number of extra insns that
+   should be added to avoid a branch. */
+#define BRANCH_COST(speed_p, predictable_p) 0
+
 /* Nonzero if access to memory by bytes is slow and undesirable.  */
 #define SLOW_BYTE_ACCESS 0
 
 /* 17.18 Adjusting the Instruction Scheduler */
 
 /* 17.19 Dividing the Output into Sections (Texts, Data, ...) */
+
+/* Output before read-only data.  */
+#define TEXT_SECTION_ASM_OP "\t.text"
+
+/* Output before writable data.  */
+#define DATA_SECTION_ASM_OP "\t.data"
+
 /* 17.20 Position Independent Code */
+
 /* 17.21.1 The Overall Framework of an Assembler File */
-/* 17.21.2 Output of Data */
-/* 17.21.3 Output of Uninitialized Variables */
-/* 17.21.4 Output and Generation of Labels */
-/* 17.21.7 Output of Assembler Instructions */
-/* 17.31 Miscellaneous Parameters */
-
-/* Max number of bytes we can move from memory to memory
-   in one reasonably fast instruction.  */
-#define MOVE_MAX 4
-
-/* end */
-
-
-/* Length in units of the trampoline for entering a nested function.  */
-#define TRAMPOLINE_SIZE 15
-
-/* Maximum number of registers that can appear in a valid memory address.  */
-#define MAX_REGS_PER_ADDRESS 2
-
-/* Value is 1 if truncating an integer of INPREC bits to OUTPREC bits
-   is done just by pretending it is already truncated.  */
-#define TRULY_NOOP_TRUNCATION(OUTPREC, INPREC) 1
-
-/* Specify the machine mode that pointers have.
-   After generation of rtl, the compiler makes no further distinction
-   between pointers and any other objects of this machine mode.  */
-#define Pmode SImode
-
-/* A function address in a call instruction
-   is a byte address (for indexing purposes)
-   so give the MEM rtx a byte's mode.  */
-#define FUNCTION_MODE QImode
-
-#define FUNCTION_VALUE_REGNO_P(N) ((N) == 0)
-
-/* Specify the cost of a branch insn; roughly the number of extra insns that
-   should be added to avoid a branch.
-
-   Branches are extremely cheap on the VC4 while the shift insns often
-   used to replace branches can be expensive.  */
-
-#define BRANCH_COST(speed_p, predictable_p) 0
-
-/* Tell final.c how to eliminate redundant test instructions.  */
-
-/* Here we define machine-dependent flags and fields in cc_status
-   (see `conditions.h').  No extra ones are needed for the VC4.  */
-
-#define OUTPUT_JUMP(NORMAL, FLOAT, NO_OV)	\
-  { if (cc_status.flags & CC_NO_OVERFLOW)	\
-      return NO_OV;				\
-    return NORMAL;				\
-  }
-
-#define ASM_GENERATE_INTERNAL_LABEL(LABEL,PREFIX,NUM)	\
-  sprintf (LABEL, "*%s%ld", PREFIX, (long)(NUM))
-
-/* This is how to output an assembler line
-   that says to advance the location counter
-   to a multiple of 2**LOG bytes.  */
-
-#define ASM_OUTPUT_ALIGN(FILE,LOG)  \
-  fprintf (FILE, "\t.align %d\n", (LOG))
-
-/* Specify the machine mode that this machine uses
-   for the index in the tablejump instruction.  */
-#define CASE_VECTOR_MODE HImode
 
 /* Output to assembler file text saying following lines
    may contain character constants, extra white space, comments, etc.  */
@@ -323,38 +333,69 @@ typedef struct {
 
 #define ASM_APP_OFF "#NO_APP\n"
 
-/* Output before read-only data.  */
+/* 17.21.2 Output of Data */
 
-#define TEXT_SECTION_ASM_OP "\t.text"
+/* 17.21.3 Output of Uninitialized Variables */
 
-/* Output before writable data.  */
+/* This says how to output an assembler line
+   to define a global common symbol.  */
 
-#define DATA_SECTION_ASM_OP "\t.data"
+#define ASM_OUTPUT_COMMON(FILE, NAME, SIZE, ROUNDED) do { \
+    fputs(".comm ", (FILE));				  \
+    assemble_name ((FILE), (NAME));			  \
+    fprintf ((FILE), ",%u\n", (int)(ROUNDED));		  \
+  } while (0)
+
+/* This says how to output an assembler line
+   to define a local common symbol.  */
+
+#define ASM_OUTPUT_LOCAL(FILE, NAME, SIZE, ROUNDED) do { \
+    fputs (".lcomm ", (FILE));				 \
+    assemble_name ((FILE), (NAME));			 \
+    fprintf ((FILE), ",%u\n", (int)(ROUNDED));		 \
+  } while (0)
+
+/* 17.21.4 Output and Generation of Labels */
+
+#define TARGET_ASM_GLOBALIZE_LABEL vc4_globalize_label
+
+#define ASM_GENERATE_INTERNAL_LABEL(LABEL,PREFIX,NUM)	\
+  sprintf (LABEL, "*%s%ld", PREFIX, (long)(NUM))
+
+/* 17.21.7 Output of Assembler Instructions */
 
 /* How to refer to registers in assembler output.
    This sequence is indexed by compiler's hard-register-number (see above).
    The register names will be prefixed by REGISTER_PREFIX, if any.  */
 
-#define REGISTER_PREFIX ""
-#define REGISTER_NAMES                                                 \
-  { "r0", "r1",  "r2",  "r3", "r4", "r5", "r6", "r7"                   \
-    , "r8", "r9", "r10", "r11", "r12", "r13", "r14"                    \
-      , "r15", "r16", "r17", "r18", "r19", "r20"                       \
-      , "r21", "r22", "r23", "r24", "r25", "r26", "r27"                \
-      , "r28", "r29", "r30", "pc"}
+#define REGISTER_NAMES							\
+  {   "r0", "r1",  "r2",  "r3", "r4", "r5", "r6", "r7", "r8",		\
+      "r9", "r10", "r11", "r12", "r13", "r14", "r15", "r16",		\
+      "r17", "r18", "r19", "r20", "r21", "r22", "r23", "r24",		\
+      "r25", "r26", "r27", "r28", "r29", "r30", "pc" }
 
-#define VC4_FUNCTION_PROFILER_NAME "mcount"
-#define FUNCTION_PROFILER(FILE, LABELNO)			\
-  do								\
-    {								\
-      char label[256];						\
-      ASM_GENERATE_INTERNAL_LABEL (label, "LP", (LABELNO));	\
-      fprintf (FILE, "\tmovab ");				\
-      assemble_name (FILE, label);				\
-      asm_fprintf (FILE, ",%Rr0\n\tjsb %s\n",			\
-		   VC4_FUNCTION_PROFILER_NAME);			\
-    }								\
-  while (0)
+#undef TARGET_PRINT_OPERAND
+#define TARGET_PRINT_OPERAND vc4_print_operand
+
+#undef TARGET_PRINT_OPERAND_PUNCT_VALID_P
+#define TARGET_PRINT_OPERAND_PUNCT_VALID_P vc4_print_operand_punct_valid_p
+
+#undef TARGET_PRINT_OPERAND_ADDRESS
+#define TARGET_PRINT_OPERAND_ADDRESS vc4_print_operand_address
+
+#define REGISTER_PREFIX ""
+
+/* 17.21.8 Output of Dispatch Tables */
+
+/* 17.21.9 Assembler Commands for Exception Regions */
+
+/* 17.21.10 Assembler Commands for Alignment */
+
+/* This is how to output an assembler line
+   that says to advance the location counter by SIZE bytes.  */
+
+#define ASM_OUTPUT_SKIP(FILE,SIZE)  \
+  fprintf (FILE, "\t.space %u\n", (int)(SIZE))
 
 /* This is how to output an assembler line
    that says to advance the location counter
@@ -363,30 +404,33 @@ typedef struct {
 #define ASM_OUTPUT_ALIGN(FILE,LOG)  \
   fprintf (FILE, "\t.align %d\n", (LOG))
 
-/* This is how to output an assembler line
-   that says to advance the location counter by SIZE bytes.  */
 
-#define ASM_OUTPUT_SKIP(FILE,SIZE)  \
-  fprintf (FILE, "\t.space %u\n", (int)(SIZE))
+/* 17.22 Controlling Debugging Information Format */
 
-/* This says how to output an assembler line
-   to define a global common symbol.  */
+/* 17.22.1 Macros Affecting All Debugging Formats */
 
-#define ASM_OUTPUT_COMMON(FILE, NAME, SIZE, ROUNDED)	\
-  ( fputs (".comm ", (FILE)),				\
-    assemble_name ((FILE), (NAME)),			\
-    fprintf ((FILE), ",%u\n", (int)(ROUNDED)))
+/* 17.31 Miscellaneous Parameters */
 
-/* This says how to output an assembler line
-   to define a local common symbol.  */
+/* Specify the machine mode that this machine uses
+   for the index in the tablejump instruction.  */
+#define CASE_VECTOR_MODE HImode
 
-#define ASM_OUTPUT_LOCAL(FILE, NAME, SIZE, ROUNDED)	\
-  ( fputs (".lcomm ", (FILE)),				\
-    assemble_name ((FILE), (NAME)),			\
-    fprintf ((FILE), ",%u\n", (int)(ROUNDED)))
+/* Max number of bytes we can move from memory to memory
+   in one reasonably fast instruction.  */
+#define MOVE_MAX 4
 
-// /* Control how constructors and destructors are emitted.  */
-// #define TARGET_ASM_CONSTRUCTOR  vc4_asm_out_constructor
-// #define TARGET_ASM_DESTRUCTOR   vc4_asm_out_destructor
+/* Value is 1 if truncating an integer of INPREC bits to OUTPREC bits
+   is done just by pretending it is already truncated.  */
+#define TRULY_NOOP_TRUNCATION(OUTPREC, INPREC) 1
 
-#define TARGET_ASM_GLOBALIZE_LABEL pa_globalize_label
+/* Specify the machine mode that pointers have.
+   After generation of rtl, the compiler makes no further distinction
+   between pointers and any other objects of this machine mode.  */
+#define Pmode SImode
+
+/* A function address in a call instruction
+   is a two-byte address (for indexing purposes)
+   so give the MEM rtx a half word's mode.  */
+#define FUNCTION_MODE HImode
+
+/* end */
